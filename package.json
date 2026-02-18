@@ -1,0 +1,29 @@
+{
+  "name": "openclaw-dashboard",
+  "version": "0.1.1",
+  "description": "Real-time monitoring dashboard for OpenClaw AI agents",
+  "main": "src/index.ts",
+  "openclaw": {
+    "extensions": ["./src/index.ts"]
+  },
+  "keywords": ["openclaw", "dashboard", "ai", "monitoring", "agents", "plugin"],
+  "license": "MIT",
+  "author": "MUIN Company",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/muin-company/openclaw-dashboard"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "files": [
+    "src/",
+    "public/",
+    "skills/",
+    "openclaw.plugin.json",
+    "README.md"
+  ],
+  "peerDependencies": {
+    "openclaw": ">=2026.1.0"
+  }
+}

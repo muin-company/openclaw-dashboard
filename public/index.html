@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>OpenClaw Dashboard</title>
+  <script src="vendor/chart.js">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<div class="header">
+  <h1><span class="dot"></span> OpenClaw Dashboard</h1>
+  <div class="header-right">
+    <span class="live-badge" id="liveStatus">LIVE</span>
+    <span>Period: <span id="periodLabel">30d</span></span>
+    <span>Updated: <span id="lastRefresh">-</span></span>
+  </div>
+</div>
+
+<div class="period-bar">
+  <label>Period:</label>
+  <button class="period-btn" data-period="thisWeek">This Week</button>
+  <button class="period-btn" data-period="thisMonth">This Month</button>
+  <span class="sep">|</span>
+  <button class="period-btn" data-days="7">7d</button>
+  <button class="period-btn" data-days="14">14d</button>
+  <button class="period-btn active" data-days="30">30d</button>
+  <button class="period-btn" data-days="0">All</button>
+  <span class="sep">|</span>
+  <input type="date" id="dateFrom">
+  <span class="sep">~</span>
+  <input type="date" id="dateTo">
+  <button class="btn-apply" id="btnApply">Apply</button>
+</div>
+
+<div class="container">
+  <!-- Summary -->
+  <div class="summary-row">
+    <div class="summary-card">
+      <div class="label">Monthly Subscription</div>
+      <div class="value" id="subTotal">-</div>
+      <div class="sub" id="subDetail">Auto-detected from openclaw.json</div>
+    </div>
+    <div class="summary-card">
+      <div class="label">Estimated API Value</div>
+      <div class="value value-green" id="apiValue">$0.00</div>
+      <div class="sub" id="apiValueSub">-</div>
+    </div>
+    <div class="summary-card">
+      <div class="label">Total Tokens</div>
+      <div class="value value-accent" id="totalTokens">0</div>
+      <div class="sub" id="tokenBreakdown">-</div>
+    </div>
+    <div class="summary-card">
+      <div class="label">Active Days</div>
+      <div class="value" id="activeDays">0</div>
+      <div class="sub" id="dateRangeText">-</div>
+    </div>
+  </div>
+
+  <!-- Subscription Breakdown -->
+  <div class="sub-row" id="subRow"></div>
+
+  <!-- Utilization Bar -->
+  <div class="util-bar-wrap">
+    <div class="util-header">
+      <span>Subscription Utilization (API value / <span id="utilDenom">$0</span>)</span>
+      <span class="fw-bold" id="utilPct">0%</span>
+    </div>
+    <div class="util-track">
+      <div class="util-fill" id="utilFill" style="width:0%"></div>
+    </div>
+    <div class="util-ticks"><span>0%</span><span>50%</span><span>100%</span><span>150%+</span></div>
+  </div>
+
+  <!-- Agent Breakdown -->
+  <div class="card">
+    <div class="card-head">
+      Agents
+      <span class="tag" id="agentCount">0</span>
+    </div>
+    <div class="card-body">
+      <div class="agent-grid" id="agentGrid">Connecting...</div>
+    </div>
+  </div>
+
+  <!-- Charts -->
+  <div class="chart-row">
+    <div class="card">
+      <div class="card-head">Daily Cost by Agent</div>
+      <div class="card-body"><div class="chart-wrap"><canvas id="costByAgentChart"></canvas></div></div>
+    </div>
+    <div class="card">
+      <div class="card-head">Daily Cost by Model</div>
+      <div class="card-body"><div class="chart-wrap"><canvas id="costByModelChart"></canvas></div></div>
+    </div>
+  </div>
+  <div class="chart-row">
+    <div class="card">
+      <div class="card-head">Daily Tokens by Agent</div>
+      <div class="card-body"><div class="chart-wrap"><canvas id="tokensByAgentChart"></canvas></div></div>
+    </div>
+    <div class="card">
+      <div class="card-head">Daily Tokens by Model</div>
+      <div class="card-body"><div class="chart-wrap"><canvas id="tokensByModelChart"></canvas></div></div>
+    </div>
+  </div>
+
+  <!-- Model Table -->
+  <div class="card">
+    <div class="card-head">Model Usage</div>
+    <div class="card-body" style="padding:0;">
+      <table id="modelTable">
+        <thead><tr>
+          <th>Model</th><th class="text-right">API Value</th><th class="text-right">Monthly Est.</th>
+          <th class="text-right">Input</th><th class="text-right">Output</th><th class="text-right">Cache R/W</th>
+          <th>Plan</th><th>Agents</th>
+        </tr></thead>
+        <tbody><tr><td colspan="8" class="text-center text-muted">Connecting...</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Agent × Model Matrix -->
+  <div class="card">
+    <div class="card-head">Agent × Model Matrix</div>
+    <div class="card-body" style="padding:0;overflow-x:auto;">
+      <table id="matrixTable">
+        <thead><tr><th>Agent</th></tr></thead>
+        <tbody><tr><td class="text-center text-muted">Connecting...</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Active Sessions -->
+  <div class="card">
+    <div class="card-head">Active Sessions <span class="tag" id="sessionCount">0</span></div>
+    <div class="card-body" style="padding:0;">
+      <table id="sessionTable">
+        <thead><tr>
+          <th style="width:60px">Status</th><th>Session</th><th>Model</th>
+          <th class="text-right">Age</th><th class="text-right">Tokens</th>
+        </tr></thead>
+        <tbody><tr><td colspan="5" class="text-center text-muted">Connecting...</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="footer">OpenClaw Dashboard — Real-time monitoring for AI agents</div>
+</div>
+
+<div class="toast-container" id="toastContainer"></div>
+
+<script src="js/app.js"></script>
+</body>
+</html>
