@@ -16,6 +16,7 @@ document.addEventListener('DOMContentLoaded', () => {
   setupPeriodButtons();
   syncDateInputs();
   initConnection();
+  setupSubscriptionMgmt();
 });
 
 function initConnection() {
@@ -204,7 +205,8 @@ function render(data) {
 
   renderSubscriptionBreakdown(c.subscriptionBreakdown);
 
-  const agentKeys = Object.keys(c.byAgent);
+  // Sort agents by cost descending
+  const agentKeys = Object.keys(c.byAgent).sort((a, b) => (c.byAgent[b].cost || 0) - (c.byAgent[a].cost || 0));
   document.getElementById('agentCount').textContent = agentKeys.length;
   renderAgentGrid(c.byAgent, agentKeys, data.sessions);
 
@@ -241,9 +243,20 @@ function renderAgentGrid(byAgent, keys, sessions) {
   // Determine live status from sessions
   const activeKeys = new Set();
   if (sessions) {
-    if (sessions.main) activeKeys.add('main');
+    if (sessions.main) {
+      activeKeys.add('main');
+      // Also match agent aliases (e.g. main session key contains agent name)
+      for (const k of keys) {
+        if (sessions.main.key && sessions.main.key.includes(k)) activeKeys.add(k);
+      }
+    }
     for (const s of (sessions.subagents || [])) {
-      if (s.status === 'active') activeKeys.add(s.id);
+      activeKeys.add(s.id);
+      // Match agent names from subagent keys (e.g. "agent:main:subagent:xyz")
+      const keyParts = (s.key || '').split(':');
+      for (const part of keyParts) {
+        if (keys.includes(part)) activeKeys.add(part);
+      }
     }
   }
 
@@ -320,6 +333,9 @@ function renderStackedBar(canvasId, dailyData, keys, colorMap, unit, isCost) {
     borderWidth: 2, pointRadius: 0, yAxisID: 'y1', order: 1,
   });
 
+  const gridColor = getComputedStyle(document.documentElement).getPropertyValue('--grid-color').trim() || '#1f2937';
+  const mutedColor = getComputedStyle(document.documentElement).getPropertyValue('--text-muted').trim() || '#6b7280';
+
   if (charts[canvasId]) charts[canvasId].destroy();
   charts[canvasId] = new Chart(ctx, {
     type: 'bar', data: { labels, datasets },
@@ -327,7 +343,7 @@ function renderStackedBar(canvasId, dailyData, keys, colorMap, unit, isCost) {
       responsive: true, maintainAspectRatio: false,
       interaction: { mode: 'index', intersect: false },
       plugins: {
-        legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 11 }, color: '#9ca3af', filter: i => i.text !== 'Cumulative' } },
+        legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 11 }, color: mutedColor, filter: i => i.text !== 'Cumulative' } },
         tooltip: { callbacks: { label: c => {
           const v = c.parsed.y;
           if (c.dataset.label === 'Cumulative') return isCost ? `Cum: $${v.toFixed(2)}` : `Cum: ${fmtTokens(v)}`;
@@ -335,9 +351,9 @@ function renderStackedBar(canvasId, dailyData, keys, colorMap, unit, isCost) {
         }}}
       },
       scales: {
-        x: { stacked: true, ticks: { font: { size: 10 }, color: '#6b7280' }, grid: { color: '#1f2937' } },
-        y: { stacked: true, position: 'left', ticks: { callback: v => isCost ? '$'+v.toFixed(0) : fmtTokens(v), font: { size: 10 }, color: '#6b7280' }, grid: { color: '#1f2937' } },
-        y1: { position: 'right', grid: { drawOnChartArea: false }, ticks: { callback: v => isCost ? '$'+v.toFixed(0) : fmtTokens(v), font: { size: 10 }, color: '#6b7280' } },
+        x: { stacked: true, ticks: { font: { size: 10 }, color: mutedColor }, grid: { color: gridColor } },
+        y: { stacked: true, position: 'left', ticks: { callback: v => isCost ? '$'+v.toFixed(0) : fmtTokens(v), font: { size: 10 }, color: mutedColor }, grid: { color: gridColor } },
+        y1: { position: 'right', grid: { drawOnChartArea: false }, ticks: { callback: v => isCost ? '$'+v.toFixed(0) : fmtTokens(v), font: { size: 10 }, color: mutedColor } },
       }
     }
   });
@@ -397,6 +413,88 @@ function renderSessions(sessions, stats) {
 // ── Helpers ──
 function fmtTokens(n) { if (!n) return '0'; if (n < 1000) return n.toString(); if (n < 1e6) return (n/1e3).toFixed(1)+'K'; return (n/1e6).toFixed(2)+'M'; }
 function fmtAge(ms) { const s = Math.floor(ms/1000); if (s<60) return s+'s'; if (s<3600) return Math.floor(s/60)+'m'; if (s<86400) return Math.floor(s/3600)+'h'; return Math.floor(s/86400)+'d'; }
+// ── Subscription Management ──
+function setupSubscriptionMgmt() {
+  loadSubscriptions();
+  const select = document.getElementById('subAddSelect');
+  const customFields = document.getElementById('subCustomFields');
+  select.addEventListener('change', () => {
+    customFields.classList.toggle('visible', select.value === 'custom');
+  });
+  document.getElementById('subAddBtn').addEventListener('click', addSubscription);
+}
+
+async function loadSubscriptions() {
+  try {
+    const res = await fetch(`${BASE_PATH}/api/config`);
+    const data = await res.json();
+    if (data.success) renderSubMgmtList(data.subscriptions || {});
+  } catch { /* silent */ }
+}
+
+function renderSubMgmtList(subs) {
+  const list = document.getElementById('subMgmtList');
+  const entries = Object.entries(subs);
+  if (!entries.length) { list.innerHTML = '<span class="text-muted">No subscriptions configured</span>'; return; }
+  list.innerHTML = entries.map(([key, sub]) => `<div class="sub-mgmt-item">
+    <div class="sub-info"><span class="sub-label">${sub.label || key}</span><span class="sub-price">$${(sub.price||0).toFixed(2)}/mo</span></div>
+    <button class="btn-danger" onclick="removeSubscription('${key}')">Remove</button>
+  </div>`).join('');
+}
+
+async function addSubscription() {
+  const select = document.getElementById('subAddSelect');
+  const val = select.value;
+  if (!val) return;
+
+  let key, sub;
+  if (val === 'custom') {
+    key = document.getElementById('subCustomKey').value.trim();
+    const label = document.getElementById('subCustomLabel').value.trim();
+    const price = parseFloat(document.getElementById('subCustomPrice').value);
+    if (!key || !label || isNaN(price)) return alert('Fill in all custom fields');
+    sub = { price, label };
+  } else {
+    key = val;
+    sub = window.KNOWN_SUBS[val];
+    if (!sub) return;
+  }
+
+  try {
+    const cfgRes = await fetch(`${BASE_PATH}/api/config`);
+    const cfgData = await cfgRes.json();
+    const subs = cfgData.subscriptions || {};
+    subs[key] = sub;
+    await saveSubscriptions(subs);
+    select.value = '';
+    document.getElementById('subCustomFields').classList.remove('visible');
+  } catch (e) { alert('Failed: ' + e.message); }
+}
+
+async function removeSubscription(key) {
+  try {
+    const cfgRes = await fetch(`${BASE_PATH}/api/config`);
+    const cfgData = await cfgRes.json();
+    const subs = cfgData.subscriptions || {};
+    delete subs[key];
+    await saveSubscriptions(subs);
+  } catch (e) { alert('Failed: ' + e.message); }
+}
+
+async function saveSubscriptions(subs) {
+  const res = await fetch(`${BASE_PATH}/api/config`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ subscriptions: subs }),
+  });
+  const data = await res.json();
+  if (data.success) {
+    renderSubMgmtList(subs);
+    fetchData(); // refresh dashboard
+  } else {
+    alert('Save failed: ' + (data.error || 'unknown'));
+  }
+}
+
 function shortModel(m) {
   if (!m) return '?';
   return m.replace('claude-','').replace('opus-4-6','opus4.6').replace('opus-4-5','opus4.5')

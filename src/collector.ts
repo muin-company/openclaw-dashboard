@@ -79,6 +79,9 @@ export function parseTranscripts(dateFrom?: string | null, dateTo?: string | nul
         const cw = usage.cacheWrite || 0;
         const messageModel = msg.model || agentModel;
 
+        // Skip delivery-mirror (internal mirroring, zero cost, meaningless)
+        if (messageModel === 'delivery-mirror') continue;
+
         const p = getPricing(messageModel);
         const mc = (inp / 1e6) * (p.input || 0)
                  + (out / 1e6) * (p.output || 0)

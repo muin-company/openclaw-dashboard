@@ -1,7 +1,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import type { IncomingMessage, ServerResponse } from 'http';
-import { OPENCLAW_BASE } from './config.js';
+import { OPENCLAW_BASE, OPENCLAW_CONFIG_PATH } from './config.js';
 import { buildSnapshot, formatSummary, parseTranscripts, getActiveSessions, type DashboardSnapshot } from './collector.js';
 
 // Plugin state
@@ -133,6 +133,51 @@ export default function register(api: any) {
         res.writeHead(500, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ success: false, error: e.message }));
       }
+    },
+  });
+
+  // Config API: GET current config, POST to update subscriptions
+  api.registerHttpRoute({
+    path: `${basePath}/api/config`,
+    handler: (req: IncomingMessage, res: ServerResponse) => {
+      if (req.method === 'GET') {
+        try {
+          const raw = JSON.parse(fs.readFileSync(OPENCLAW_CONFIG_PATH, 'utf8'));
+          const subs = raw.plugins?.entries?.['openclaw-dashboard']?.config?.subscriptions || {};
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ success: true, subscriptions: subs }));
+        } catch (e: any) {
+          res.writeHead(500, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ success: false, error: e.message }));
+        }
+        return;
+      }
+      if (req.method === 'POST') {
+        let body = '';
+        req.on('data', (chunk: Buffer) => { body += chunk.toString(); });
+        req.on('end', () => {
+          try {
+            const { subscriptions } = JSON.parse(body);
+            const raw = JSON.parse(fs.readFileSync(OPENCLAW_CONFIG_PATH, 'utf8'));
+            if (!raw.plugins) raw.plugins = {};
+            if (!raw.plugins.entries) raw.plugins.entries = {};
+            if (!raw.plugins.entries['openclaw-dashboard']) raw.plugins.entries['openclaw-dashboard'] = {};
+            if (!raw.plugins.entries['openclaw-dashboard'].config) raw.plugins.entries['openclaw-dashboard'].config = {};
+            raw.plugins.entries['openclaw-dashboard'].config.subscriptions = subscriptions;
+            fs.writeFileSync(OPENCLAW_CONFIG_PATH, JSON.stringify(raw, null, 2), 'utf8');
+            // Re-collect to pick up changes
+            try { collectSnapshot(); } catch {}
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ success: true }));
+          } catch (e: any) {
+            res.writeHead(500, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ success: false, error: e.message }));
+          }
+        });
+        return;
+      }
+      res.writeHead(405, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ success: false, error: 'Method not allowed' }));
     },
   });
 

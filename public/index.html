@@ -16,6 +16,7 @@
     <span class="live-badge" id="liveStatus">LIVE</span>
     <span>Period: <span id="periodLabel">30d</span></span>
     <span>Updated: <span id="lastRefresh">-</span></span>
+    <button class="theme-toggle" id="themeToggle" title="Toggle theme">🌙</button>
   </div>
 </div>
 
@@ -148,11 +149,73 @@
     </div>
   </div>
 
-  <div class="footer">OpenClaw Dashboard <span id="dashVersion">v0.1.5</span> — Real-time monitoring for AI agents</div>
+  <!-- Subscription Management -->
+  <div class="card">
+    <div class="card-head">Subscription Management</div>
+    <div class="card-body">
+      <div class="sub-mgmt">
+        <div class="sub-mgmt-list" id="subMgmtList"><span class="text-muted">Loading...</span></div>
+        <div class="sub-add-row">
+          <select id="subAddSelect">
+            <option value="">Add subscription...</option>
+            <option value="claude_max">Claude Max — $100/mo</option>
+            <option value="claude_max_5x">Claude Max 5x — $200/mo</option>
+            <option value="chatgpt_pro">ChatGPT Pro — $200/mo</option>
+            <option value="chatgpt_plus">ChatGPT Plus — $20/mo</option>
+            <option value="google_ai_pro">Google AI Pro — $19.99/mo</option>
+            <option value="google_ai_ultra">Google AI Ultra — $249.99/mo</option>
+            <option value="custom">Custom...</option>
+          </select>
+          <button class="btn-primary" id="subAddBtn">Add</button>
+        </div>
+        <div class="sub-custom-fields" id="subCustomFields">
+          <input type="text" id="subCustomKey" placeholder="Key (e.g. my_sub)">
+          <input type="text" id="subCustomLabel" placeholder="Label">
+          <input type="number" id="subCustomPrice" placeholder="Price" step="0.01">
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="footer">OpenClaw Dashboard <span id="dashVersion">v0.1.6</span> — Real-time monitoring for AI agents</div>
 </div>
 
 <div class="toast-container" id="toastContainer"></div>
 
+<script>
+// Theme system — init before app.js to prevent flash
+(function() {
+  const KNOWN_SUBS = {
+    claude_max: { price: 100, label: 'Claude Max' },
+    claude_max_5x: { price: 200, label: 'Claude Max (5x)' },
+    chatgpt_pro: { price: 200, label: 'ChatGPT Pro' },
+    chatgpt_plus: { price: 20, label: 'ChatGPT Plus' },
+    google_ai_pro: { price: 19.99, label: 'Google AI Pro' },
+    google_ai_ultra: { price: 249.99, label: 'Google AI Ultra' },
+  };
+  window.KNOWN_SUBS = KNOWN_SUBS;
+
+  // Theme
+  const modes = ['dark', 'light', 'system'];
+  const icons = { dark: '🌙', light: '☀️', system: '🖥️' };
+  let themeMode = localStorage.getItem('oc-theme') || 'dark';
+  function applyTheme(mode) {
+    themeMode = mode;
+    document.documentElement.setAttribute('data-theme', mode);
+    localStorage.setItem('oc-theme', mode);
+    const btn = document.getElementById('themeToggle');
+    if (btn) btn.textContent = icons[mode];
+  }
+  applyTheme(themeMode);
+  document.addEventListener('DOMContentLoaded', () => {
+    applyTheme(themeMode);
+    document.getElementById('themeToggle').addEventListener('click', () => {
+      const next = modes[(modes.indexOf(themeMode) + 1) % modes.length];
+      applyTheme(next);
+    });
+  });
+})();
+</script>
 <script src="js/app.js"></script>
 </body>
 </html>
