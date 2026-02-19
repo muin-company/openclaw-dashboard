@@ -413,6 +413,16 @@ function renderSessions(sessions, stats) {
 // ── Helpers ──
 function fmtTokens(n) { if (!n) return '0'; if (n < 1000) return n.toString(); if (n < 1e6) return (n/1e3).toFixed(1)+'K'; return (n/1e6).toFixed(2)+'M'; }
 function fmtAge(ms) { const s = Math.floor(ms/1000); if (s<60) return s+'s'; if (s<3600) return Math.floor(s/60)+'m'; if (s<86400) return Math.floor(s/3600)+'h'; return Math.floor(s/86400)+'d'; }
+// ── Subscription Catalog ──
+window.KNOWN_SUBS = {
+  claude_max: { price: 100, label: 'Claude Max' },
+  claude_max_5x: { price: 200, label: 'Claude Max (5x)' },
+  chatgpt_pro: { price: 200, label: 'ChatGPT Pro' },
+  chatgpt_plus: { price: 20, label: 'ChatGPT Plus' },
+  google_ai_pro: { price: 19.99, label: 'Google AI Pro' },
+  google_ai_ultra: { price: 249.99, label: 'Google AI Ultra' },
+};
+
 // ── Subscription Management ──
 function setupSubscriptionMgmt() {
   loadSubscriptions();
