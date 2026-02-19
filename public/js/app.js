@@ -101,7 +101,8 @@ function syncDateInputs() {
     const mon = new Date(now); mon.setDate(now.getDate() - diff);
     dfEl.value = mon.toISOString().split('T')[0];
   } else if (currentPeriod === 'thisMonth') {
-    dfEl.value = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
+    const y = now.getFullYear(), m = now.getMonth() + 1;
+    dfEl.value = `${y}-${String(m).padStart(2,'0')}-01`;
   } else if (currentPeriod === 'all' || currentPeriod === 0 || currentPeriod === '0') {
     dfEl.value = ''; dtEl.value = '';
   } else if (typeof currentPeriod === 'number' && currentPeriod > 0) {
@@ -121,7 +122,8 @@ function getDateParams() {
     const mon = new Date(now); mon.setDate(now.getDate() - diff);
     params.from = mon.toISOString().split('T')[0];
   } else if (currentPeriod === 'thisMonth') {
-    params.from = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0];
+    const n = new Date(), y = n.getFullYear(), m = n.getMonth() + 1;
+    params.from = `${y}-${String(m).padStart(2,'0')}-01`;
   } else if (currentPeriod > 0) {
     const d = new Date(); d.setDate(d.getDate() - currentPeriod);
     params.from = d.toISOString().split('T')[0];

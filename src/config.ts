@@ -21,6 +21,7 @@ export interface OpenClawDashboardConfig {
   authProfiles: Record<string, any>;
   defaultProvider: string;
   defaultModel: string;
+  pluginConfig: Record<string, any>;
 }
 
 /** Load and parse openclaw.json — auto-detect agents, subscriptions */
@@ -29,7 +30,7 @@ export function loadConfig(configOverride?: any): OpenClawDashboardConfig {
   try {
     raw = configOverride || JSON.parse(fs.readFileSync(OPENCLAW_CONFIG_PATH, 'utf8'));
   } catch {
-    return { agents: {}, subscriptions: {}, authProfiles: {}, defaultProvider: 'unknown', defaultModel: 'unknown' };
+    return { agents: {}, subscriptions: {}, authProfiles: {}, defaultProvider: 'unknown', defaultModel: 'unknown', pluginConfig: {} };
   }
 
   const defaults = raw.agents?.defaults || {};
@@ -88,7 +89,7 @@ export function loadConfig(configOverride?: any): OpenClawDashboardConfig {
     }
   }
 
-  return { agents, subscriptions, authProfiles, defaultProvider, defaultModel };
+  return { agents, subscriptions, authProfiles, defaultProvider, defaultModel, pluginConfig };
 }
 
 export function classifyModel(modelName: string, agentId: string, config: OpenClawDashboardConfig): { subKey: string | null; planType: string } {

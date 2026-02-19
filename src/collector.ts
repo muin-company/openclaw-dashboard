@@ -36,7 +36,9 @@ export function parseTranscripts(dateFrom?: string | null, dateTo?: string | nul
     const sessionsDir = path.join(OPENCLAW_BASE, agentDir, 'sessions');
     if (!fs.existsSync(sessionsDir) || !fs.statSync(sessionsDir).isDirectory()) continue;
 
-    const resolvedAgent = agentDir;
+    const pluginConfig = config.pluginConfig || {};
+    const agentAliases: Record<string, string> = pluginConfig.agentAliases || {};
+    const resolvedAgent = agentAliases[agentDir] || agentDir;
     const agentCfg = config.agents[agentDir] || config.agents[resolvedAgent] || {};
     const agentModel = agentCfg.model || 'unknown';
 
