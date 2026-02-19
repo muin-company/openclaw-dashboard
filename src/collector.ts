@@ -36,7 +36,7 @@ export function parseTranscripts(dateFrom?: string | null, dateTo?: string | nul
     const sessionsDir = path.join(OPENCLAW_BASE, agentDir, 'sessions');
     if (!fs.existsSync(sessionsDir) || !fs.statSync(sessionsDir).isDirectory()) continue;
 
-    const resolvedAgent = agentDir === 'main' ? 'MJ' : agentDir;
+    const resolvedAgent = agentDir;
     const agentCfg = config.agents[agentDir] || config.agents[resolvedAgent] || {};
     const agentModel = agentCfg.model || 'unknown';
 
@@ -267,7 +267,7 @@ export function formatSummary(snapshot?: DashboardSnapshot): string {
   ];
 
   for (const [name, data] of Object.entries<any>(c.byAgent || {})) {
-    const statusEmoji = s.sessions.main?.key?.includes(name) || name === 'MJ' ? '🟢' : '⚪';
+    const statusEmoji = s.sessions.main?.key?.includes(name) || name === 'main' ? '🟢' : '⚪';
     lines.push(`  ${statusEmoji} ${name}: $${data.cost} | ${fmtTokens(data.tokens)} tokens`);
   }
 

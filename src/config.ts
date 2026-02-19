@@ -54,14 +54,38 @@ export function loadConfig(configOverride?: any): OpenClawDashboardConfig {
     }
   }
 
-  // Auto-detect subscriptions from auth profiles
+  // Subscription detection: plugin config overrides > auto-detect from auth profiles
   const authProfiles = raw.auth?.profiles || {};
+  const pluginConfig = raw.plugins?.entries?.['openclaw-dashboard']?.config || {};
   const subscriptions: Record<string, Subscription> = {};
-  for (const [, profile] of Object.entries<any>(authProfiles)) {
-    const prov = profile.provider;
-    if (prov === 'anthropic') subscriptions['anthropic_max'] = { price: 200.0, label: 'Anthropic Max' };
-    if (prov === 'openai-codex' || prov === 'openai') subscriptions['openai_plus'] = { price: 20.0, label: 'OpenAI Plus' };
-    if (prov === 'google-gemini-cli' && profile.mode === 'oauth' && profile.plan === 'pro') subscriptions['google_ai_pro'] = { price: 19.99, label: 'Google AI Pro' };
+
+  // Known subscription catalog
+  const KNOWN_SUBSCRIPTIONS: Record<string, Subscription> = {
+    'claude_max': { price: 100.0, label: 'Claude Max' },
+    'claude_max_5x': { price: 200.0, label: 'Claude Max (5x)' },
+    'chatgpt_pro': { price: 200.0, label: 'ChatGPT Pro' },
+    'chatgpt_plus': { price: 20.0, label: 'ChatGPT Plus' },
+    'google_ai_pro': { price: 19.99, label: 'Google AI Pro' },
+    'google_ai_ultra': { price: 249.99, label: 'Google AI Ultra' },
+  };
+
+  // If user configured subscriptions explicitly, use those
+  if (pluginConfig.subscriptions && Object.keys(pluginConfig.subscriptions).length > 0) {
+    for (const [key, sub] of Object.entries<any>(pluginConfig.subscriptions)) {
+      if (KNOWN_SUBSCRIPTIONS[key]) {
+        subscriptions[key] = { ...KNOWN_SUBSCRIPTIONS[key], ...sub };
+      } else {
+        subscriptions[key] = sub;
+      }
+    }
+  } else {
+    // Auto-detect from auth profiles
+    for (const [, profile] of Object.entries<any>(authProfiles)) {
+      const prov = profile.provider;
+      if (prov === 'anthropic') subscriptions['claude_max_5x'] = KNOWN_SUBSCRIPTIONS['claude_max_5x'];
+      if (prov === 'openai-codex' || prov === 'openai') subscriptions['chatgpt_pro'] = KNOWN_SUBSCRIPTIONS['chatgpt_pro'];
+      if (prov === 'google-gemini-cli') subscriptions['google_ai_pro'] = KNOWN_SUBSCRIPTIONS['google_ai_pro'];
+    }
   }
 
   return { agents, subscriptions, authProfiles, defaultProvider, defaultModel };
@@ -71,30 +95,26 @@ export function classifyModel(modelName: string, agentId: string, config: OpenCl
   if (!modelName || modelName === 'delivery-mirror') return { subKey: null, planType: 'free' };
   const ml = modelName.toLowerCase();
 
+  // Find matching subscription by model type
+  const claudeSub = Object.keys(config.subscriptions).find(k => k.startsWith('claude'));
+  const openaiSub = Object.keys(config.subscriptions).find(k => k.startsWith('chatgpt') || k.startsWith('openai'));
+  const geminiSub = Object.keys(config.subscriptions).find(k => k.startsWith('google'));
+
   if (ml.includes('claude')) {
-    return config.subscriptions.anthropic_max
-      ? { subKey: 'anthropic_max', planType: 'subscription' }
+    return claudeSub
+      ? { subKey: claudeSub, planType: 'subscription' }
       : { subKey: null, planType: 'payperuse' };
   }
   if (ml.includes('gpt') || ml.includes('codex')) {
-    return config.subscriptions.openai_plus
-      ? { subKey: 'openai_plus', planType: 'subscription' }
+    return openaiSub
+      ? { subKey: openaiSub, planType: 'subscription' }
       : { subKey: null, planType: 'payperuse' };
   }
   if (ml.includes('grok')) return { subKey: null, planType: 'payperuse' };
   if (ml.includes('gemini')) {
-    if (config.subscriptions.google_ai_pro) {
-      return { subKey: 'google_ai_pro', planType: 'subscription' };
-    }
-    // google-gemini-cli OAuth without pro plan = free
-    const agentCfg = config.agents[agentId];
-    if (agentCfg?.provider === 'google-gemini-cli') {
-      return { subKey: null, planType: 'free' };
-    }
-    for (const p of Object.values(config.authProfiles)) {
-      if ((p as any).provider === 'google-gemini-cli') return { subKey: null, planType: 'free' };
-    }
-    return { subKey: null, planType: 'payperuse' };
+    return geminiSub
+      ? { subKey: geminiSub, planType: 'subscription' }
+      : { subKey: null, planType: 'payperuse' };
   }
   return { subKey: null, planType: 'free' };
 }
@@ -102,7 +122,7 @@ export function classifyModel(modelName: string, agentId: string, config: OpenCl
 export function determineBillingType(ocCost: number, modelName: string, agentId: string, config: OpenClawDashboardConfig): string {
   const { subKey, planType } = classifyModel(modelName, agentId, config);
   if (planType === 'subscription') {
-    if (subKey === 'google_ai_pro' && ocCost > 0) return 'payperuse';
+    if (subKey?.startsWith('google') && ocCost > 0) return 'payperuse';
     return 'subscription';
   }
   return planType;

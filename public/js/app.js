@@ -239,7 +239,7 @@ function renderAgentGrid(byAgent, keys, sessions) {
   // Determine live status from sessions
   const activeKeys = new Set();
   if (sessions) {
-    if (sessions.main) activeKeys.add('MJ');
+    if (sessions.main) activeKeys.add('main');
     for (const s of (sessions.subagents || [])) {
       if (s.status === 'active') activeKeys.add(s.id);
     }

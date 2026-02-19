@@ -2,7 +2,7 @@
   "id": "openclaw-dashboard",
   "name": "OpenClaw Dashboard",
   "description": "Real-time monitoring dashboard for OpenClaw AI agents",
-  "version": "0.1.0",
+  "version": "0.1.4",
   "configSchema": {
     "type": "object",
     "additionalProperties": false,
@@ -10,14 +10,27 @@
       "enabled": { "type": "boolean" },
       "theme": { "type": "string", "enum": ["dark", "light"], "default": "dark" },
       "refreshIntervalMs": { "type": "integer", "minimum": 2000, "default": 10000 },
-      "basePath": { "type": "string", "default": "/dashboard" }
+      "basePath": { "type": "string", "default": "/dashboard" },
+      "subscriptions": {
+        "type": "object",
+        "description": "Subscription plans. Key = plan id, value = { price, label }",
+        "additionalProperties": {
+          "type": "object",
+          "properties": {
+            "price": { "type": "number", "description": "Monthly price in USD" },
+            "label": { "type": "string", "description": "Display name" }
+          },
+          "required": ["price", "label"]
+        }
+      }
     }
   },
   "uiHints": {
     "enabled": { "label": "Enable Dashboard" },
     "theme": { "label": "Theme", "help": "Dashboard color theme" },
-    "refreshIntervalMs": { "label": "Refresh Interval (ms)", "help": "How often to poll for data changes" },
-    "basePath": { "label": "Base Path", "help": "URL path where dashboard is served" }
+    "refreshIntervalMs": { "label": "Refresh Interval (ms)" },
+    "basePath": { "label": "Base Path" },
+    "subscriptions": { "label": "Subscriptions", "help": "Configure your AI service subscriptions. Known plans: claude_max ($100), claude_max_5x ($200), chatgpt_pro ($200), chatgpt_plus ($20), google_ai_pro ($19.99), google_ai_ultra ($249.99). Or define custom ones." }
   },
   "skills": ["skills/dashboard"]
 }
