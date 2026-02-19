@@ -8,6 +8,8 @@ let charts = {};
 let currentPeriod = 30;
 let useWebSocket = false;
 let socket = null;
+let isLoading = true;
+let lastError = null;
 
 // ── Init ──
 document.addEventListener('DOMContentLoaded', () => {
@@ -17,10 +19,38 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 function initConnection() {
-  // Use polling (reliable across proxies/Tailscale)
   updateLiveStatus(false);
+  showLoading(true);
   fetchData();
   setInterval(fetchData, REFRESH_MS);
+}
+
+function showLoading(show) {
+  isLoading = show;
+  const container = document.querySelector('.container');
+  let overlay = document.getElementById('loadingOverlay');
+  if (show && !overlay) {
+    overlay = document.createElement('div');
+    overlay.id = 'loadingOverlay';
+    overlay.className = 'loading-overlay';
+    overlay.innerHTML = '<div class="spinner"></div><div class="loading-text">Loading dashboard data...</div>';
+    container.prepend(overlay);
+  } else if (!show && overlay) {
+    overlay.remove();
+  }
+}
+
+function showError(msg) {
+  let banner = document.getElementById('errorBanner');
+  if (!msg) { if (banner) banner.remove(); lastError = null; return; }
+  lastError = msg;
+  if (!banner) {
+    banner = document.createElement('div');
+    banner.id = 'errorBanner';
+    banner.className = 'error-banner';
+    document.querySelector('.container').prepend(banner);
+  }
+  banner.innerHTML = `<span class="error-icon">⚠️</span><span class="error-msg">${msg}</span><button class="error-retry" onclick="fetchData()">Retry</button>`;
 }
 
 function updateLiveStatus(connected) {
@@ -113,9 +143,20 @@ async function fetchData() {
     const qs = Object.entries(params).map(([k,v]) => `${k}=${v}`).join('&');
     const url = qs ? `${API_URL}?${qs}` : API_URL;
     const res = await fetch(url);
+    if (!res.ok) throw new Error(`HTTP ${res.status}: ${res.statusText}`);
     const data = await res.json();
-    if (data.success) render(data);
-  } catch (e) { console.error('Fetch error:', e); }
+    if (data.success) {
+      showLoading(false);
+      showError(null);
+      render(data);
+    } else {
+      throw new Error(data.error || 'Unknown error');
+    }
+  } catch (e) {
+    console.error('Fetch error:', e);
+    showLoading(false);
+    showError(`Failed to load data: ${e.message}`);
+  }
   updateTimestamp();
 }
 

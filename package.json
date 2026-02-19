@@ -1,6 +1,6 @@
 {
   "name": "openclaw-dashboard",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Real-time monitoring dashboard for OpenClaw AI agents",
   "main": "src/index.ts",
   "openclaw": {

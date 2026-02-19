@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>OpenClaw Dashboard</title>
-  <script src="vendor/chart.js">
+  <script src="vendor/chart.js"></script>
   <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
@@ -81,7 +81,7 @@
       <span class="tag" id="agentCount">0</span>
     </div>
     <div class="card-body">
-      <div class="agent-grid" id="agentGrid">Connecting...</div>
+      <div class="agent-grid" id="agentGrid"><div class="loading-overlay"><div class="spinner"></div></div></div>
     </div>
   </div>
 
@@ -117,7 +117,7 @@
           <th class="text-right">Input</th><th class="text-right">Output</th><th class="text-right">Cache R/W</th>
           <th>Plan</th><th>Agents</th>
         </tr></thead>
-        <tbody><tr><td colspan="8" class="text-center text-muted">Connecting...</td></tr></tbody>
+        <tbody><tr><td colspan="8" class="text-center text-muted"><div class="spinner" style="margin:8px auto"></div></td></tr></tbody>
       </table>
     </div>
   </div>
@@ -128,7 +128,7 @@
     <div class="card-body" style="padding:0;overflow-x:auto;">
       <table id="matrixTable">
         <thead><tr><th>Agent</th></tr></thead>
-        <tbody><tr><td class="text-center text-muted">Connecting...</td></tr></tbody>
+        <tbody><tr><td class="text-center text-muted"><div class="spinner" style="margin:8px auto"></div></td></tr></tbody>
       </table>
     </div>
   </div>
@@ -142,7 +142,7 @@
           <th style="width:60px">Status</th><th>Session</th><th>Model</th>
           <th class="text-right">Age</th><th class="text-right">Tokens</th>
         </tr></thead>
-        <tbody><tr><td colspan="5" class="text-center text-muted">Connecting...</td></tr></tbody>
+        <tbody><tr><td colspan="5" class="text-center text-muted"><div class="spinner" style="margin:8px auto"></div></td></tr></tbody>
       </table>
     </div>
   </div>
