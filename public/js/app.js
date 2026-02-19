@@ -56,6 +56,7 @@ function showError(msg) {
 
 function updateLiveStatus(connected) {
   const el = document.getElementById('liveStatus');
+  if (!el) return;
   if (connected) { el.textContent = 'LIVE'; el.style.background = '#22c55e'; }
   else { el.textContent = 'POLL'; el.style.background = '#f59e0b'; }
 }
