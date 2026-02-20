@@ -2,7 +2,7 @@
   "id": "openclaw-dashboard",
   "name": "OpenClaw Dashboard",
   "description": "Real-time monitoring dashboard for OpenClaw AI agents",
-  "version": "0.1.9",
+  "version": "0.2.0",
   "configSchema": {
     "type": "object",
     "additionalProperties": false,

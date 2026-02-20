@@ -22,6 +22,7 @@ export interface OpenClawDashboardConfig {
   defaultProvider: string;
   defaultModel: string;
   pluginConfig: Record<string, any>;
+  unconfiguredProviders: string[];
 }
 
 /** Load and parse openclaw.json — auto-detect agents, subscriptions */
@@ -30,7 +31,7 @@ export function loadConfig(configOverride?: any): OpenClawDashboardConfig {
   try {
     raw = configOverride || JSON.parse(fs.readFileSync(OPENCLAW_CONFIG_PATH, 'utf8'));
   } catch {
-    return { agents: {}, subscriptions: {}, authProfiles: {}, defaultProvider: 'unknown', defaultModel: 'unknown', pluginConfig: {} };
+    return { agents: {}, subscriptions: {}, authProfiles: {}, defaultProvider: 'unknown', defaultModel: 'unknown', pluginConfig: {}, unconfiguredProviders: [] };
   }
 
   const defaults = raw.agents?.defaults || {};
@@ -79,17 +80,18 @@ export function loadConfig(configOverride?: any): OpenClawDashboardConfig {
         subscriptions[key] = sub;
       }
     }
-  } else {
-    // Auto-detect from auth profiles
-    for (const [, profile] of Object.entries<any>(authProfiles)) {
-      const prov = profile.provider;
-      if (prov === 'anthropic') subscriptions['claude_max_5x'] = KNOWN_SUBSCRIPTIONS['claude_max_5x'];
-      if (prov === 'openai-codex' || prov === 'openai') subscriptions['chatgpt_pro'] = KNOWN_SUBSCRIPTIONS['chatgpt_pro'];
-      if (prov === 'google-gemini-cli') subscriptions['google_ai_pro'] = KNOWN_SUBSCRIPTIONS['google_ai_pro'];
-    }
   }
 
-  return { agents, subscriptions, authProfiles, defaultProvider, defaultModel, pluginConfig };
+  // Detect providers in use but not configured
+  const detectedProviders: string[] = [];
+  for (const [, profile] of Object.entries<any>(authProfiles)) {
+    const prov = profile.provider;
+    if (prov === 'anthropic' && !subscriptions['claude_max'] && !subscriptions['claude_max_5x']) detectedProviders.push('Anthropic (Claude)');
+    if ((prov === 'openai-codex' || prov === 'openai') && !subscriptions['chatgpt_pro'] && !subscriptions['chatgpt_plus']) detectedProviders.push('OpenAI (ChatGPT)');
+    if (prov === 'google-gemini-cli' && !subscriptions['google_ai_pro'] && !subscriptions['google_ai_ultra']) detectedProviders.push('Google (Gemini)');
+  }
+
+  return { agents, subscriptions, authProfiles, defaultProvider, defaultModel, pluginConfig, unconfiguredProviders: detectedProviders };
 }
 
 export function classifyModel(modelName: string, agentId: string, config: OpenClawDashboardConfig): { subKey: string | null; planType: string } {

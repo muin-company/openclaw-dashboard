@@ -191,6 +191,7 @@ export function parseTranscripts(dateFrom?: string | null, dateTo?: string | nul
     totalCost: +totalCost.toFixed(2), dailyCost: +dailyCost.toFixed(2), monthlyCost: +(dailyCost * 30).toFixed(2),
     daysRunning: days, activeDays: activeDates.size,
     subscriptionTotal: +subscriptionTotal.toFixed(2), subscriptionBreakdown: subBreakdown,
+    unconfiguredProviders: config.unconfiguredProviders || [],
     utilization: subscriptionTotal > 0 ? +((totalEst / subscriptionTotal) * 100).toFixed(1) : 0,
     totalEstimatedApiCost: +totalEst.toFixed(2), payperUseCost: +payperUseCost.toFixed(2),
     totalTokens: totalInput + totalOutput + totalCacheRead,

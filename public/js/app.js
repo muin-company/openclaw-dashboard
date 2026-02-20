@@ -204,7 +204,7 @@ function render(data) {
   fill.style.width = Math.min(util, 150) / 1.5 + '%';
   fill.className = 'util-fill' + (util > 100 ? ' over' : util > 70 ? ' high' : '');
 
-  renderSubscriptionBreakdown(c.subscriptionBreakdown);
+  renderSubscriptionBreakdown(c.subscriptionBreakdown, c.unconfiguredProviders || []);
 
   // Sort agents by cost descending
   const agentKeys = Object.keys(c.byAgent).sort((a, b) => (c.byAgent[b].cost || 0) - (c.byAgent[a].cost || 0));
@@ -221,8 +221,16 @@ function render(data) {
   renderSessions(data.sessions, data.stats);
 }
 
-function renderSubscriptionBreakdown(subs) {
+function renderSubscriptionBreakdown(subs, unconfigured) {
   const row = document.getElementById('subRow');
+  if ((!subs || !Object.keys(subs).length) && unconfigured && unconfigured.length) {
+    row.innerHTML = `<div class="sub-card sub-card-warn">
+      <div class="sub-name">⚠️ Subscriptions not configured</div>
+      <div class="sub-detail">Detected providers: <strong>${unconfigured.join(', ')}</strong></div>
+      <div class="sub-detail" style="margin-top:6px">Configure your subscriptions below in <strong>Subscription Management</strong> for accurate cost analysis.</div>
+    </div>`;
+    return;
+  }
   if (!subs || !Object.keys(subs).length) { row.innerHTML = ''; return; }
   row.innerHTML = Object.entries(subs).map(([, d]) => {
     const cls = d.savings >= 0 ? 'text-green' : 'text-red';
